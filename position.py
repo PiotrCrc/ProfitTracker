@@ -1,5 +1,6 @@
 import yfinance as yf
 import pandas as pd
+import datetime as dt
 from abc import ABC, abstractmethod
 from matplotlib import pyplot as plt
 from transaction import Transaction
@@ -12,6 +13,10 @@ class BasicPosition(ABC):
         self.ticker_data = yf.Ticker(self.symbol)
         # get current price from yfinance ticker
         self.current_price = self.ticker_data.history().tail(1)['Close'].iloc[0]
+
+    @abstractmethod
+    def get_price_at_date(self, date):
+        return self.ticker_data.history(start=date,end=date+dt.timedelta(days=1))['Close'].iloc[0]
 
 
 class Position(BasicPosition):
@@ -86,3 +91,8 @@ class Position(BasicPosition):
     @property
     def dataframe(self):
         return self._df
+
+
+class Currency(BasicPosition):
+    def get_price_at_date(self, date):
+        return super().get_price_at_date(date)
