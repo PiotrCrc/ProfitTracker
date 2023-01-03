@@ -1,10 +1,29 @@
+import datetime
+
 import yfinance as yf
 import pandas as pd
 import pickle
+
+from abc import ABC, abstractmethod
+
 from matplotlib import pyplot as plt
 from transaction import Transaction
 import numpy as np
 
+class BasicPosition(ABC):
+    def __init__(self, symbol: str, save_data=False, load_data=False):
+        self.load_data = load_data
+        self.save_data = save_data
+
+        self.symbol = symbol
+
+    @abstractmethod
+    def update_ticker_data(self):
+        pass
+
+    @abstractmethod
+    def get_close_value_at_date(self,date:datetime.date):
+        pass
 
 class Position:
     def __init__(self, symbol: str, currency: str, transactions: list[Transaction] = (), save_data=False, load_data=False):
@@ -29,8 +48,8 @@ class Position:
         else:
             self._df = self.ticker_data.history(period="max")[["Close"]]
 
-    def update_ticker_data(self, symbol):
-        if self.load_data:  # just
+    def update_ticker_data(self):
+        if self.load_data:
             pickle_file = open(self.load_data, 'rb')
             self.ticker_data = pickle.load(pickle_file)
             pickle_file.close()
