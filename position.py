@@ -2,11 +2,12 @@ import yfinance as yf
 import pandas as pd
 import pickle
 from matplotlib import pyplot as plt
-
+from transaction import Transaction
+import numpy as np
 
 
 class Position:
-    def __init__(self, symbol: str, currency: str, transactions=(), save_data=False, load_data=False):
+    def __init__(self, symbol: str, currency: str, transactions: list[Transaction] = (), save_data=False, load_data=False):
         self.load_data = load_data
         self.save_data = save_data
 
@@ -48,10 +49,11 @@ class Position:
         self._df.loc[:, "Profit%"] = 0
         self._df.loc[:, "Profit"] = 0
         self._df.loc[:, "TotalProfit"] = 0
+        self._df.loc[:, "TotalProfitWithDiv"] = 0
         self._df.loc[:, "AvgPrice"] = 0
 
         for transaction in self.transactions:
-            df_mask = pd.to_datetime(self._df.index) >= transaction.date
+            df_mask = pd.to_datetime(self._df.index).tz_localize(None) >= transaction.date
             if transaction.amount > 0:
                 self._df.loc[df_mask, "AvgPrice"] = (self._df.loc[df_mask, "AvgPrice"] *
                                                      self.current_amount +
@@ -75,20 +77,23 @@ class Position:
                 self._df.loc[df_mask, "CostOfPosition"] = self._df.loc[df_mask, "CostOfPosition"] + \
                                                           self._df.loc[df_mask, "AvgPrice"] * \
                                                           transaction.amount
-                self._df.loc[df_mask, "TotalProfit"] = (self._df.loc[df_mask, "RealizedProfit"] +
-                                                        self._df.loc[df_mask, "Close"] *
-                                                        self._df.loc[df_mask, "Amount"]) - \
-                                                        self._df.loc[df_mask, "CostOfPosition"]
+            self._df.loc[df_mask, "TotalProfit"] = (self._df.loc[df_mask, "RealizedProfit"] +
+                                                    self._df.loc[df_mask, "Close"] *
+                                                    self._df.loc[df_mask, "Amount"]) - \
+                                                    self._df.loc[df_mask, "CostOfPosition"]
 
         self._df["DividendValue"] = self._df["Dividends"] * self._df["Amount"]
         self._df["DividendProfit"] = self._df["DividendValue"].cumsum()
+        self._df["TotalProfitWithDiv"] = self._df["DividendProfit"] + self._df["TotalProfit"]
         self._df["Value"] = self._df["Close"] * (self._df["Amount"])
 
-    def show_chart(self) -> None:
-        plt.figure();
 
-        self._df["RealizedProfit"].plot();
-        self._df["Close"].plot(secondary_y = True);
+    def show_chart(self) -> None:
+        plt.figure()
+
+
+        self._df["TotalProfit"].plot()
+        self._df["Close"].plot(secondary_y = True)
         plt.show()
 
 
